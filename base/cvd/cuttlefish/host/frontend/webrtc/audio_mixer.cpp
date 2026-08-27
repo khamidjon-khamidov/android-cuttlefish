@@ -6,6 +6,7 @@
 #include "audio_settings.h"
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 
 namespace cuttlefish {
 namespace {
@@ -161,6 +162,18 @@ void AudioMixer::OnStreamStopped(uint32_t stream_id) {
   next_frame_.erase(stream_id);
 }
 
+void AudioMixer::SetFade(float fade) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  fade_ = std::clamp(fade, -1.0f, 1.0f);
+  LOG(INFO) << "[Host AudioMixer v2] SetFade: " << fade_;
+}
+
+void AudioMixer::SetBalance(float balance) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  balance_ = std::clamp(balance, -1.0f, 1.0f);
+  LOG(INFO) << "[Host AudioMixer v2] SetBalance: " << balance_;
+}
+
 void AudioMixer::OnPlayback(uint32_t stream_id, uint32_t stream_sample_rate,
                             uint8_t stream_channels_count,
                             uint8_t stream_bits_per_channel, float volume,
@@ -172,9 +185,29 @@ void AudioMixer::OnPlayback(uint32_t stream_id, uint32_t stream_sample_rate,
 
   std::unique_lock<std::mutex> lock(mutex_);
 
-  // As of now we only use direct channel mapping
-  for(size_t i = 0; i < channles_map.size(); ++i) {
-    channles_map[i][i] = volume;
+  // Spatial gain calculation for Fade & Balance (applies to Zone 0: streams 0-5)
+  // Channels layout: [0]=FL, [1]=FR, [2]=FC, [3]=LFE, [4]=RL, [5]=RR
+  float fl_gain = 1.0f, fr_gain = 1.0f, fc_gain = 1.0f, lfe_gain = 1.0f,
+        rl_gain = 1.0f, rr_gain = 1.0f;
+  if (stream_id <= 5) {
+    float front_gain = (fade_ >= 0.0f) ? 1.0f : (1.0f + fade_);
+    float rear_gain = (fade_ <= 0.0f) ? 1.0f : (1.0f - fade_);
+    float left_gain = (balance_ <= 0.0f) ? 1.0f : (1.0f - balance_);
+    float right_gain = (balance_ >= 0.0f) ? 1.0f : (1.0f + balance_);
+
+    fl_gain = front_gain * left_gain;
+    fr_gain = front_gain * right_gain;
+    fc_gain = front_gain;
+    lfe_gain = 1.0f;
+    rl_gain = rear_gain * left_gain;
+    rr_gain = rear_gain * right_gain;
+  }
+
+  const float spatial_gains[6] = {fl_gain, fr_gain, fc_gain,
+                                  lfe_gain, rl_gain, rr_gain};
+  for (size_t i = 0; i < channels_map.size(); ++i) {
+    float spatial_gain = (i < 6) ? spatial_gains[i] : 1.0f;
+    channels_map[i][i] = volume * spatial_gain;
   }
 
   const bool need_notify = next_frame_.empty();  // no active streams
@@ -204,7 +237,7 @@ void AudioMixer::OnPlayback(uint32_t stream_id, uint32_t stream_sample_rate,
   const auto filled_frames_count =
       convert_fn(mixed_buffer_.data() + next_frame_id * frame_size_bytes_,
                  channels_count_, sample_rate_, buffer, stream_channels_count,
-                 stream_sample_rate, stream_frames_count, channles_map);
+                 stream_sample_rate, stream_frames_count, channels_map);
   CHECK(filled_frames_count <= frames_count);
 
   next_frame_[stream_id] = next_frame_id + filled_frames_count;

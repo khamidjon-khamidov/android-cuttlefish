@@ -30,6 +30,9 @@ class AudioMixer {
                   size_t size);
   void OnStreamStopped(uint32_t stream_id);
 
+  void SetFade(float fade);
+  void SetBalance(float balance);
+
  private:
   // The main mixing loop that runs on its own thread.
   void MixerLoop();
@@ -58,8 +61,12 @@ class AudioMixer {
   // Frame index per stream to put next available data to
   std::unordered_map<uint32_t, size_t> next_frame_;
 
+  // Spatial gains for automotive cabin (Zone 0)
+  float fade_ = 0.0f;     // [-1.0 (Rear) to 1.0 (Front)]
+  float balance_ = 0.0f;  // [-1.0 (Left) to 1.0 (Right)]
+
   // Used to remap channels and apply volume levels
-  std::vector<std::vector<float>> channles_map = {{
+  std::vector<std::vector<float>> channels_map = {{
       {1, 0, 0, 0, 0, 0},
       {0, 1, 0, 0, 0, 0},
       {0, 0, 1, 0, 0, 0},

@@ -60,6 +60,8 @@ class AudioHandler : public AudioServerExecutor {
     enum class Type {
       Mute,
       Volume,
+      Fade,
+      Balance,
     };
 
     Type type = Type::Mute;
@@ -97,6 +99,8 @@ class AudioHandler : public AudioServerExecutor {
 
   AudioStatus HandleControlMute(ControlCommand& cmd);
   AudioStatus HandleControlVolume(ControlCommand& cmd);
+  AudioStatus HandleControlFade(ControlCommand& cmd);
+  AudioStatus HandleControlBalance(ControlCommand& cmd);
 
   std::unique_ptr<AudioServer> audio_server_;
   std::thread server_thread_;
@@ -107,5 +111,9 @@ class AudioHandler : public AudioServerExecutor {
   std::vector<virtio_snd_ctl_info> controls_;
   std::vector<ControlDesc> controls_to_streams_map_;
   std::unique_ptr<AudioMixer> audio_mixer_;
+
+  int32_t current_fade_ = 0;
+  int32_t current_balance_ = 0;
+  std::mutex control_mutex_;
 };
 }  // namespace cuttlefish
