@@ -29,15 +29,12 @@
 #include <memory>
 #include <random>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "google/protobuf/util/message_differencer.h"
 #include <zlib.h>
 
 #include "cuttlefish/common/libs/fs/fd.h"
-#include "cuttlefish/common/libs/fs/shared_buf.h"
-#include "cuttlefish/common/libs/fs/shared_fd.h"
 #include "cuttlefish/common/libs/utils/files.h"
 #include "cuttlefish/common/libs/utils/size_utils.h"
 #include "cuttlefish/host/libs/image_aggregator/cdisk_spec.pb.h"
@@ -48,6 +45,8 @@
 #include "cuttlefish/host/libs/image_aggregator/image_from_file.h"
 #include "cuttlefish/host/libs/image_aggregator/mbr.h"
 #include "cuttlefish/host/libs/image_aggregator/sparse_image.h"
+#include "cuttlefish/io/io.h"
+#include "cuttlefish/io/write_exact.h"
 #include "cuttlefish/result/result.h"
 
 namespace cuttlefish {
@@ -244,7 +243,9 @@ class CompositeDiskBuilder {
     gpt.footer = head.header;
     gpt.footer.partition_entries_lba =
         (DiskSize() - sizeof(gpt.entries)) / kSectorSize - 1;
-    std::swap(gpt.footer.current_lba, gpt.footer.backup_lba);
+    auto tmp_lba = gpt.footer.current_lba;
+    gpt.footer.current_lba = gpt.footer.backup_lba;
+    gpt.footer.backup_lba = tmp_lba;
     gpt.footer.header_crc32 = 0;
     gpt.footer.header_crc32 =
         crc32(0, (uint8_t*)&gpt.footer, sizeof(GptHeader));
@@ -257,23 +258,14 @@ class CompositeDiskBuilder {
   bool read_only_ = true;
 };
 
-Result<void> WriteBeginning(SharedFD out, const GptBeginning& beginning) {
-  std::string begin_str((const char*)&beginning, sizeof(GptBeginning));
-  CF_EXPECT_EQ(WriteAll(out, begin_str), begin_str.size(),
-               "Could not write GPT beginning: " << out->StrError());
-  return {};
-}
-
-Result<void> WriteEnd(SharedFD out, const GptEnd& end) {
+Result<void> WriteEnd(Writer& out, const GptEnd& end) {
   auto disk_size = (end.footer.current_lba + 1) * kSectorSize;
   auto footer_start = (end.footer.last_usable_lba + 1) * kSectorSize;
   auto padding = disk_size - footer_start - sizeof(GptEnd);
   std::string padding_str(padding, '\0');
 
-  CF_EXPECT_EQ(WriteAll(out, padding_str), padding_str.size(),
-               "Could not write GPT end padding: " << out->StrError());
-  CF_EXPECT_EQ(WriteAllBinary(out, &end), sizeof(end),
-               "Could not write GPT end contents: " << out->StrError());
+  CF_EXPECT(WriteExact(out, padding_str));
+  CF_EXPECT(WriteExactBinary(out, end));
   return {};
 }
 
@@ -323,33 +315,28 @@ Result<void> AggregateImage(const std::vector<ImagePartition>& partitions,
     Result<void> unused = builder.AppendPartition(partition);
   }
 
-  SharedFD output = CF_EXPECT(Fd::Creat(output_path, 0600));
+  Fd output = CF_EXPECT(Fd::Creat(output_path, 0600));
 
   GptBeginning beginning = CF_EXPECT(builder.Beginning());
-  CF_EXPECTF(WriteBeginning(output, beginning),
-             "Could not write GPT beginning to '{}': {}", output_path,
-             output->StrError());
+  CF_EXPECT(WriteExactBinary(output, beginning));
 
   for (const auto& partition_info : builder.Partitions()) {
     const auto& disk = partition_info.source;
-    SharedFD disk_fd = CF_EXPECT(Fd::Open(disk.image_file_path, O_RDONLY));
+    Fd disk_fd = CF_EXPECT(Fd::Open(disk.image_file_path, O_RDONLY));
 
-    auto file_size = FileSize(disk.image_file_path);
-    CF_EXPECTF(output->CopyFrom(*disk_fd, file_size),
+    uint64_t file_size = FileSize(disk.image_file_path);
+    CF_EXPECTF(output.CopyFrom(disk_fd, file_size),
                "Could not copy from '{}' to '{}': {}", disk.image_file_path,
-               output_path, output->StrError());
+               output_path, output.StrError());
     // Handle disk images that are not aligned to PARTITION_SIZE_SHIFT
     uint64_t padding = AlignToPartitionSize(file_size) - file_size;
     std::string padding_str;
     padding_str.resize(padding, '\0');
 
-    CF_EXPECTF(WriteAll(output, padding_str) == padding_str.size(),
-               "Could not write partition padding to '{}': {}", output_path,
-               output->StrError());
+    CF_EXPECT(WriteExact(output, padding_str));
   }
   CF_EXPECTF(WriteEnd(output, builder.End(beginning)),
-             "Could not write GPT end to '{}': {}", output_path,
-             output->StrError());
+             "Could not write GPT end to '{}'", output_path);
   return {};
 };
 
@@ -380,18 +367,15 @@ Result<void> CreateOrUpdateCompositeDisk(
 
   CF_EXPECT(WriteCompositeDiskToFile(composite_proto, output_composite_path));
 
-  SharedFD header = CF_EXPECT(Fd::Creat(header_file, 0600));
+  Fd header = CF_EXPECT(Fd::Creat(header_file, 0600));
 
   GptBeginning beginning = CF_EXPECT(builder.Beginning());
-  CF_EXPECTF(WriteBeginning(header, beginning),
-             "Could not write GPT beginning to '{}': {}", header_file,
-             header->StrError());
+  CF_EXPECT(WriteExactBinary(header, beginning));
 
-  SharedFD footer = CF_EXPECT(Fd::Creat(footer_file, 0600));
+  Fd footer = CF_EXPECT(Fd::Creat(footer_file, 0600));
 
   CF_EXPECTF(WriteEnd(footer, builder.End(beginning)),
-             "Could not write GPT end to '{}': {}", footer_file,
-             footer->StrError());
+             "Could not write GPT end to '{}'", footer_file);
 
   return {};
 }

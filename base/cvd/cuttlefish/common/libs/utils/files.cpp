@@ -45,6 +45,7 @@
 #include "android-base/file.h"
 #include "fmt/format.h"
 
+#include "cuttlefish/common/libs/fs/fd.h"
 #include "cuttlefish/common/libs/fs/shared_buf.h"
 #include "cuttlefish/common/libs/fs/shared_fd.h"
 #include "cuttlefish/common/libs/utils/environment.h"
@@ -60,6 +61,7 @@
 #include "cuttlefish/posix/realpath.h"
 #include "cuttlefish/posix/remove.h"
 #include "cuttlefish/posix/rename.h"
+#include "cuttlefish/posix/stat.h"
 #include "cuttlefish/posix/strerror.h"
 #include "cuttlefish/result/result.h"
 
@@ -209,19 +211,12 @@ std::string AbsolutePath(std::string_view path) {
 }
 
 off_t FileSize(const std::string& path) {
-  struct stat st{};
-  if (stat(path.c_str(), &st) == -1) {
-    return 0;
-  }
-  return st.st_size;
+  static auto get_size = [](const struct stat& st) { return st.st_size; };
+  return Stat(path).transform(get_size).value_or(0);
 }
 
 Result<uid_t> FileOwner(const std::string& path) {
-  struct stat st{};
-  if (stat(path.c_str(), &st) == -1) {
-    return CF_ERRF("Failed to stat file '{}' : {}", path, StrError(errno));
-  }
-  return st.st_uid;
+  return CF_EXPECT(Stat(path)).st_uid;
 }
 
 bool MakeFileExecutable(const std::string& path) {
@@ -231,11 +226,7 @@ bool MakeFileExecutable(const std::string& path) {
 
 Result<std::chrono::system_clock::time_point> FileModificationTime(
     const std::string& path) {
-  struct stat st;
-  CF_EXPECTF(stat(path.c_str(), &st) == 0,
-             "stat() failed retrieving file modification time on \"{}\" with "
-             "error: {}",
-             path, strerror(errno));
+  struct stat st = CF_EXPECT(Stat(path));
 #ifdef __linux__
   std::chrono::seconds seconds(st.st_mtim.tv_sec);
 #elif defined(__APPLE__)
@@ -275,20 +266,15 @@ std::string ReadFile(const std::string& file) {
   return (contents);
 }
 
-Result<std::string> ReadFileContents(const std::string& filepath) {
-  CF_EXPECTF(FileExists(filepath), "The file at \"{}\" does not exist.",
-             filepath);
-  auto file = SharedFD::Open(filepath, O_RDONLY);
-  CF_EXPECTF(file->IsOpen(), "Failed to open file \"{}\".  Error: {}\n",
-             filepath, file->StrError());
-  return CF_EXPECT(ReadToString(*file));
+Result<std::string> ReadFileContents(const std::string& path) {
+  CF_EXPECTF(FileExists(path), "The file at '{}' does not exist.", path);
+  Fd file = CF_EXPECT(Fd::Open(path, O_RDONLY));
+  return CF_EXPECT(ReadToString(file));
 }
 Result<void> WriteNewFile(const std::string& filepath, std::string_view content,
                           mode_t mode) {
-  CF_EXPECTF(!FileExists(filepath), "File already exists: {}", filepath);
-  SharedFD file_fd = SharedFD::Open(filepath, O_CREAT | O_WRONLY, mode);
-  CF_EXPECTF(file_fd->IsOpen(), "Failed to open file \"{}\" for writing: {}",
-             filepath, file_fd->StrError());
+  SharedFD file_fd =
+      CF_EXPECT(Fd::Open(filepath, O_CREAT | O_EXCL | O_WRONLY, mode));
   const auto written_size = WriteAll(file_fd, content);
   CF_EXPECTF(written_size == content.size(),
              "Failed to write all content to file. Error:\n",
@@ -311,7 +297,7 @@ std::string CurrentDirectory() {
 }
 
 FileSizes SparseFileSizes(const std::string& path) {
-  auto fd = SharedFD::Open(path, O_RDONLY);
+  SharedFD fd = Fd::Open(path, O_RDONLY).value_or(Fd());
   if (!fd->IsOpen()) {
     LOG(ERROR) << "Could not open \"" << path << "\": " << fd->StrError();
     return {};
@@ -411,30 +397,26 @@ Result<std::string> Search(const std::vector<std::string>& path,
 
 Result<SharedFD> CreateOrReuseAndDrainFifo(const std::string& path,
                                            mode_t mode) {
-  struct stat st{};
-  bool existed = false;
-  if (TEMP_FAILURE_RETRY(stat(path.c_str(), &st)) != 0) {
-    CF_EXPECTF(TEMP_FAILURE_RETRY(mkfifo(path.c_str(), mode)) == 0,
-               "Failed to mkfifo('{}', {:o}): {}", path, mode,
-               ::cuttlefish::StrError(errno));
-  } else {
-    CF_EXPECTF(S_ISFIFO(st.st_mode), "File at '{}' exists but is not a FIFO",
+  Result<struct stat> st = Stat(path);
+  if (st.has_value()) {
+    CF_EXPECTF(S_ISFIFO(st->st_mode), "File at '{}' exists but is not a FIFO",
                path);
-    existed = true;
+  } else {
+    CF_EXPECTF(TEMP_FAILURE_RETRY(mkfifo(path.c_str(), mode)) == 0,
+               "Failed to mkfifo('{}', {:o}): {}", path, mode, StrError(errno));
   }
 
-  auto ret = SharedFD::Open(path, O_RDWR);
-  CF_EXPECTF(ret->IsOpen(), "Failed to open '{}': '{}'", path, ret->StrError());
+  Fd ret = CF_EXPECT(Fd::Open(path, O_RDWR));
 
-  if (existed) {
-    int flags = ret->Fcntl(F_GETFL, 0);
+  if (st.has_value()) {
+    int flags = ret.Fcntl(F_GETFL, 0);
     if (flags >= 0) {
-      ret->Fcntl(F_SETFL, flags | O_NONBLOCK);
+      ret.Fcntl(F_SETFL, flags | O_NONBLOCK);
       char buf[4096];
-      while (ret->Read(buf, sizeof(buf)).value_or(0) > 0) {
+      while (ret.Read(buf, sizeof(buf)).value_or(0) > 0) {
         // Reading while there is data to read
       }
-      ret->Fcntl(F_SETFL, flags);
+      ret.Fcntl(F_SETFL, flags);
     }
   }
 
