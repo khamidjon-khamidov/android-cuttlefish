@@ -318,17 +318,8 @@ AudioHandler::AudioHandler(
       audio_mixer_(
           std::make_unique<AudioMixer>(std::move(audio_sink), mixer_settings)) {
   streams_ = std::vector<virtio_snd_pcm_info>(stream_descs_.size());
-  const auto input_streams_count = static_cast<size_t>(std::count_if(
-      stream_settings.cbegin(), stream_settings.cend(),
-      [](const AudioStreamSettings& settings) {
-        return settings.direction == AudioStreamSettings::Direction::Capture;
-      }));
-  for (const auto& settings : stream_settings) {
-    const auto stream_id =
-        settings.id +
-        (settings.direction == AudioStreamSettings::Direction::Playback
-             ? input_streams_count
-             : 0);
+  for (size_t stream_id = 0; stream_id < stream_settings.size(); ++stream_id) {
+    const auto& settings = stream_settings[stream_id];
     streams_[stream_id] = GetVirtioSndPcmInfo(settings);
     chmaps_[stream_id] = GetVirtioSndChmapInfo(settings);
 
