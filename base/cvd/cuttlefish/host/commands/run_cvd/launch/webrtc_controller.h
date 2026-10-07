@@ -35,6 +35,13 @@ class WebRtcController : public SetupFeature {
   Result<void> SendStopRecordingCommand();
   Result<void> SendScreenshotDisplayCommand(int display_number,
                                             const std::string& screenshot_path);
+  Result<void> SendRequestCarAudioFocusCommand(int zone_id, int usage,
+                                               int content_type,
+                                               const std::string& tags,
+                                               int focus_gain);
+  Result<void> SendAbandonCarAudioFocusCommand(int zone_id, int usage,
+                                               int content_type,
+                                               const std::string& tags);
 
  protected:
   SharedFD client_socket_;

@@ -86,6 +86,25 @@ cf_cc_library(
 )
 
 cf_cc_library(
+    name = "car_audio",
+    srcs = ["car_audio.cpp"],
+    hdrs = ["car_audio.h"],
+    deps = [
+        "//cuttlefish/common/libs/utils:files",
+        "//cuttlefish/flag_parser",
+        "//cuttlefish/host/commands/cvd/cli:command_request",
+        "//cuttlefish/host/commands/cvd/cli:utils",
+        "//cuttlefish/host/commands/cvd/cli/commands:command_handler",
+        "//cuttlefish/host/commands/cvd/cli/selector",
+        "//cuttlefish/host/commands/cvd/instances:instance_manager",
+        "//cuttlefish/host/commands/cvd/utils:common",
+        "//cuttlefish/process:command",
+        "//cuttlefish/result",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+cf_cc_library(
     name = "display",
     srcs = ["display.cpp"],
     hdrs = ["display.h"],

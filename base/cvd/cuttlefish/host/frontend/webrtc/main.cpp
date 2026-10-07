@@ -39,6 +39,7 @@
 #include "cuttlefish/host/frontend/webrtc/display_handler.h"
 #include "cuttlefish/host/frontend/webrtc/kernel_log_events_handler.h"
 #include "cuttlefish/host/frontend/webrtc/libdevice/camera_controller.h"
+#include "cuttlefish/host/frontend/webrtc/libdevice/car_audio_focus_observer.h"
 #include "cuttlefish/host/frontend/webrtc/libdevice/lights_observer.h"
 #include "cuttlefish/host/frontend/webrtc/libdevice/local_recorder.h"
 #include "cuttlefish/host/frontend/webrtc/libdevice/streamer.h"
@@ -145,10 +146,11 @@ CreateConfirmationUIComponent(int* frames_fd, bool* frames_are_rgba,
       .bindInstance(*input_connector);
 }
 
-Result<void> ControlLoop(SharedFD control_socket,
-                         DisplayHandler& display_handler,
-                         RecordingManager& recording_manager,
-                         ScreenshotHandler& screenshot_handler) {
+Result<void> ControlLoop(
+    SharedFD control_socket, DisplayHandler& display_handler,
+    RecordingManager& recording_manager, ScreenshotHandler& screenshot_handler,
+    std::shared_ptr<webrtc_streaming::CarAudioFocusObserver>
+        car_audio_focus_observer) {
   WebrtcServerCommandChannel channel(control_socket);
   while (true) {
     webrtc::WebrtcCommandRequest request = CF_EXPECT(channel.ReceiveRequest());
@@ -178,6 +180,31 @@ Result<void> ControlLoop(SharedFD control_socket,
                    << screenshot_request.display_number() << " to "
                    << screenshot_request.screenshot_path() << ":"
                    << command_result.error().Message();
+      }
+    } else if (request.has_request_car_audio_focus_request()) {
+      const auto& focus_request = request.request_car_audio_focus_request();
+      LOG(INFO) << "Received command to request car audio focus in zone "
+                << focus_request.zone_id() << " in main.cpp.";
+      if (car_audio_focus_observer) {
+        command_result = car_audio_focus_observer->RequestFocus(
+            focus_request.zone_id(), focus_request.usage(),
+            focus_request.content_type(), focus_request.tags(),
+            focus_request.focus_gain());
+      } else {
+        command_result =
+            CF_ERR("Car audio focus is not available on this device");
+      }
+    } else if (request.has_abandon_car_audio_focus_request()) {
+      const auto& focus_request = request.abandon_car_audio_focus_request();
+      LOG(INFO) << "Received command to abandon car audio focus in zone "
+                << focus_request.zone_id() << " in main.cpp.";
+      if (car_audio_focus_observer) {
+        command_result = car_audio_focus_observer->AbandonFocus(
+            focus_request.zone_id(), focus_request.usage(),
+            focus_request.content_type(), focus_request.tags());
+      } else {
+        command_result =
+            CF_ERR("Car audio focus is not available on this device");
       }
     } else {
       LOG(FATAL) << "Unhandled request: " << request.DebugString();
@@ -487,6 +514,17 @@ int CuttlefishMain() {
     lights_observer->Start();
   }
 
+  std::shared_ptr<webrtc_streaming::CarAudioFocusObserver>
+      car_audio_focus_observer;
+  if (instance.audiocontrol_server_port() &&
+      instance.device_type() == DeviceType::Auto) {
+    car_audio_focus_observer =
+        std::make_shared<webrtc_streaming::CarAudioFocusObserver>(
+            instance.audiocontrol_server_port(), instance.vsock_guest_cid(),
+            instance.vhost_user_vsock());
+    car_audio_focus_observer->Start();
+  }
+
   webrtc_streaming::SensorsHandler sensors_handler(sensors_fd);
 
   auto observer_factory = std::make_shared<CfConnectionObserverFactory>(
@@ -636,8 +674,9 @@ int CuttlefishMain() {
   streamer->Register(operator_observer);
 
   std::thread control_thread([&]() {
-    auto result = ControlLoop(control_socket, *display_handler,
-                              recording_manager, screenshot_handler);
+    auto result =
+        ControlLoop(control_socket, *display_handler, recording_manager,
+                    screenshot_handler, car_audio_focus_observer);
     if (!result.has_value()) {
       LOG(ERROR) << "Webrtc control loop error: " << result.error().Message();
     }

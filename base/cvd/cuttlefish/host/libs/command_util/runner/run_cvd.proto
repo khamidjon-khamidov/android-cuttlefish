@@ -26,6 +26,8 @@ message ExtendedLauncherAction {
     StopScreenRecording stop_screen_recording = 8;
     SnapshotTake snapshot_take = 9;
     ScreenshotDisplay screenshot_display = 10;
+    RequestCarAudioFocus request_car_audio_focus = 11;
+    AbandonCarAudioFocus abandon_car_audio_focus = 12;
   }
   string verbosity = 20;
 }
@@ -39,4 +41,19 @@ message SnapshotTake {
 message ScreenshotDisplay {
   int32 display_number = 1;
   string screenshot_path = 2;
+}
+// Values follow android.media.audio.common.AudioUsage / AudioContentType and
+// android.hardware.automotive.audiocontrol.AudioFocusChange.
+message RequestCarAudioFocus {
+  int32 zone_id = 1;
+  int32 usage = 2;
+  int32 content_type = 3;
+  string tags = 4;
+  int32 focus_gain = 5;
+}
+message AbandonCarAudioFocus {
+  int32 zone_id = 1;
+  int32 usage = 2;
+  int32 content_type = 3;
+  string tags = 4;
 }
