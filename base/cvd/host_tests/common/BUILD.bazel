@@ -12,19 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_go//go:def.bzl", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
-go_test(
-    name = "metrics_tests",
-    srcs = ["main_test.go"],
-    deps = [
-        "//cvd/common:common",
+go_library(
+    name = "common",
+    srcs = [
+        "cvdalloc.go",
+        "dnsmasq.go",
+        "init_filesystem_ns.go",
+        "init_network_ns.go",
+        "ip.go",
+        "nft.go",
+        "sandbox.go",
+        "state.go",
+        "static_resources.go",
     ],
-    size = "large",
-    tags = [
-        "exclusive",
-        "external",
-        "no-sandbox",
-        "supports-graceful-termination",
+    embedsrcs = ["dnsmasq_shim.sh"],
+    importpath = "github.com/google/android-cuttlefish/base/cvd/host_tests/common",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_google_go_cmp//cmp",
+        "@rules_go//go/runfiles",
     ],
 )

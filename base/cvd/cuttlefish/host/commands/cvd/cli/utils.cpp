@@ -16,12 +16,14 @@
 
 #include "cuttlefish/host/commands/cvd/cli/utils.h"
 
-#include <asm-generic/ioctls.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>  // IWYU pragma: keep: siginfo_t
 #include <stddef.h>
 #include <string.h>
+#ifdef __linux__
+#include <asm-generic/ioctls.h>  // IWYU pragma: keep: TIOCGWINSZ
+#endif
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -223,16 +225,17 @@ Result<std::vector<Flag>> GetSiblingCommandFlags(
   });
   args.emplace_back("-helpxml");
   Command command = CF_EXPECT(ConstructSiblingHelpCommand(bin_name, env, args));
-  std::string stdout;
-  std::string stderr;
-  int res = RunWithManagedStdio(std::move(command), nullptr, &stdout, &stderr);
+  std::string stdout_str;
+  std::string stderr_str;
+  int res = RunWithManagedStdio(std::move(command), nullptr, &stdout_str,
+                                &stderr_str);
   // gflags returns exit code 1 when --help is given
   if (res != 0 && res != 1) {
     return CF_ERRF("Failed to execute start binary, exit code: {}, stderr: {}",
-                   res, stderr);
+                   res, stderr_str);
   }
   std::vector<GflagDescription> gflag_descs =
-      CF_EXPECT(ParseGflagsXmlHelp(stdout));
+      CF_EXPECT(ParseGflagsXmlHelp(stdout_str));
   std::vector<Flag> flags;
   for (const GflagDescription& desc : gflag_descs) {
     if (desc.name != "help" &&
