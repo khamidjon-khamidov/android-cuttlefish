@@ -1,0 +1,21 @@
+load("//cuttlefish/bazel:rules.bzl", "cf_build_test", "cf_cc_binary")
+
+package(
+    default_visibility = ["//:android_cuttlefish"],
+)
+
+cf_build_test(name = "car_audio_build_test")
+
+cf_cc_binary(
+    name = "cvd_internal_car_audio",
+    srcs = ["main.cpp"],
+    deps = [
+        "//cuttlefish/common/libs/utils:tee_logging",
+        "//cuttlefish/flag_parser",
+        "//cuttlefish/host/libs/command_util",
+        "//cuttlefish/host/libs/command_util:libcuttlefish_run_cvd_proto",
+        "//cuttlefish/host/libs/config:cuttlefish_config",
+        "//cuttlefish/result",
+        "@abseil-cpp//absl/base:no_destructor",
+    ],
+)

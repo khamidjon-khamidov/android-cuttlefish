@@ -141,6 +141,18 @@ cf_cc_library(
 )
 
 cf_cc_library(
+    name = "car_audio_focus_observer",
+    srcs = ["car_audio_focus_observer.cpp"],
+    hdrs = ["car_audio_focus_observer.h"],
+    deps = [
+        "//cuttlefish/common/libs/utils:vsock_connection",
+        "//cuttlefish/result",
+        "@abseil-cpp//absl/log",
+        "@jsoncpp",
+    ],
+)
+
+cf_cc_library(
     name = "lights_observer",
     srcs = ["lights_observer.cpp"],
     hdrs = ["lights_observer.h"],

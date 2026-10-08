@@ -260,6 +260,24 @@ Result<void> ServerLoopImpl::HandleExtended(
       CF_EXPECT(HandleScreenshotDisplay(request));
       return {};
     }
+    case ActionsCase::kRequestCarAudioFocus: {
+      VLOG(0) << "Run_cvd received request car audio focus request.";
+      CF_EXPECT_EQ(device_status_.load(), DeviceStatus::kActive,
+                   "Device is not active, cannot request car audio focus");
+      const auto& request =
+          action_info.extended_action.request_car_audio_focus();
+      CF_EXPECT(HandleRequestCarAudioFocus(request));
+      return {};
+    }
+    case ActionsCase::kAbandonCarAudioFocus: {
+      VLOG(0) << "Run_cvd received abandon car audio focus request.";
+      CF_EXPECT_EQ(device_status_.load(), DeviceStatus::kActive,
+                   "Device is not active, cannot abandon car audio focus");
+      const auto& request =
+          action_info.extended_action.abandon_car_audio_focus();
+      CF_EXPECT(HandleAbandonCarAudioFocus(request));
+      return {};
+    }
     default:
       return CF_ERR("Unsupported ExtendedLauncherAction");
   }

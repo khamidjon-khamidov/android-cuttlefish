@@ -29,11 +29,30 @@ message ScreenshotDisplayRequest {
   string screenshot_path = 2;
 }
 
+// Values follow android.media.audio.common.AudioUsage / AudioContentType and
+// android.hardware.automotive.audiocontrol.AudioFocusChange.
+message RequestCarAudioFocusRequest {
+  int32 zone_id = 1;
+  int32 usage = 2;
+  int32 content_type = 3;
+  string tags = 4;
+  int32 focus_gain = 5;
+}
+
+message AbandonCarAudioFocusRequest {
+  int32 zone_id = 1;
+  int32 usage = 2;
+  int32 content_type = 3;
+  string tags = 4;
+}
+
 message WebrtcCommandRequest {
   oneof actions {
     StartRecordingDisplayRequest start_recording_request = 1;
     StopRecordingDisplayRequest stop_recording_request = 2;
     ScreenshotDisplayRequest screenshot_display_request = 3;
+    RequestCarAudioFocusRequest request_car_audio_focus_request = 4;
+    AbandonCarAudioFocusRequest abandon_car_audio_focus_request = 5;
   }
 }
 

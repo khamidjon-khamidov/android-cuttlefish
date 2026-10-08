@@ -29,6 +29,7 @@
 #include "cuttlefish/host/commands/cvd/cli/command_request.h"
 #include "cuttlefish/host/commands/cvd/cli/commands/bugreport.h"
 #include "cuttlefish/host/commands/cvd/cli/commands/cache.h"
+#include "cuttlefish/host/commands/cvd/cli/commands/car_audio.h"
 #include "cuttlefish/host/commands/cvd/cli/commands/clear.h"
 #include "cuttlefish/host/commands/cvd/cli/commands/command_handler.h"
 #include "cuttlefish/host/commands/cvd/cli/commands/create.h"
@@ -135,6 +136,8 @@ RequestContext::RequestContext(InstanceManager& instance_manager,
 
   request_handlers_.emplace_back(
       std::make_unique<CvdCreateCommandHandler>(instance_manager));
+  request_handlers_.emplace_back(
+      std::make_unique<CvdCarAudioCommandHandler>(instance_manager));
   request_handlers_.emplace_back(
       std::make_unique<CvdDisplayCommandHandler>(instance_manager));
   request_handlers_.emplace_back(
