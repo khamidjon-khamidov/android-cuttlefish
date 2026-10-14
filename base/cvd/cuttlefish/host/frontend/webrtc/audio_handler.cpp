@@ -149,7 +149,7 @@ virtio_snd_ctl_info GetVirtioCtlInfoFade(
                     .max = Le32(100),
                     .step = Le32(1),
                 }}};
-  std::format_to_n(info.name, sizeof(info.name) - 1, "{} Fade (C{}D{})",
+  std::format_to_n(info.name, sizeof(info.name) - 1, "Master {} Fade (C{}D{})",
                    GetDirectionString(stream_direction), card_id, device_id);
   return info;
 }
@@ -173,7 +173,7 @@ virtio_snd_ctl_info GetVirtioCtlInfoBalance(
                     .max = Le32(100),
                     .step = Le32(1),
                 }}};
-  std::format_to_n(info.name, sizeof(info.name) - 1, "{} Balance (C{}D{})",
+  std::format_to_n(info.name, sizeof(info.name) - 1, "Master {} Balance (C{}D{})",
                    GetDirectionString(stream_direction), card_id, device_id);
   return info;
 }
