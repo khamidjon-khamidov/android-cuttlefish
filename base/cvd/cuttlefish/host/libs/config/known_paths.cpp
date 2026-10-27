@@ -199,6 +199,10 @@ std::string VhalProxyServerConfig() {
   return DefaultHostArtifactsPath("etc/automotive/vhalconfig");
 }
 
+std::string CarAudioFocusProxyBinary() {
+  return HostBinaryPath("car_audio_focus_proxy");
+}
+
 std::string WebRtcBinary() { return HostBinaryPath("webRTC"); }
 
 std::string WebRtcSigServerBinary() {

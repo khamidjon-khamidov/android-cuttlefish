@@ -67,6 +67,7 @@ std::string TombstoneReceiverBinary();
 std::string UnpackBootimgBinary();
 std::string VhalProxyServerBinary();
 std::string VhalProxyServerConfig();
+std::string CarAudioFocusProxyBinary();
 std::string VhostUserInputBinary();
 std::string VhostUserMediaEmulatedCameraSPlaneBinary();
 std::string VhostUserMediaEmulatedCameraMPlaneBinary();

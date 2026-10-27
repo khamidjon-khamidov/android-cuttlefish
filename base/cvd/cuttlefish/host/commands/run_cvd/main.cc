@@ -63,6 +63,7 @@
 #include "cuttlefish/host/commands/run_cvd/launch/tombstone_receiver.h"
 #include "cuttlefish/host/commands/run_cvd/launch/uwb_connector.h"
 #include "cuttlefish/host/commands/run_cvd/launch/vhal_proxy_server.h"
+#include "cuttlefish/host/commands/run_cvd/launch/car_audio_focus_proxy.h"
 #include "cuttlefish/host/commands/run_cvd/launch/vhost_device_vsock.h"
 #include "cuttlefish/host/commands/run_cvd/launch/vhost_user_media_devices.h"
 #include "cuttlefish/host/commands/run_cvd/launch/virtual_tuner_server.h"
@@ -167,6 +168,7 @@ fruit::Component<> runCvdComponent(
       .install(WmediumdServerComponent)
       .install(launchStreamerComponent)
       .install(AutoCmd<VhalProxyServer>::Component)
+      .install(AutoCmd<CarAudioFocusProxy>::Component)
       .install(AutoCmd<VirtualTunerServer>::Component)
       .install(Ti50EmulatorComponent)
       .install(VhostUserMediaDevicesComponent)

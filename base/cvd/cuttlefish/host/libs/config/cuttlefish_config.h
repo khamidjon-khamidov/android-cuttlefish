@@ -604,6 +604,7 @@ class CuttlefishConfig {
 
     bool enable_vhal_proxy_server() const;
     int vhal_proxy_server_port() const;
+    bool enable_car_audio_focus_proxy() const;
 
     int virtual_tuner_server_port() const;
 
@@ -844,6 +845,7 @@ class CuttlefishConfig {
 
     void set_enable_vhal_proxy_server(bool enable_vhal_proxy_server);
     void set_vhal_proxy_server_port(int port);
+    void set_enable_car_audio_focus_proxy(bool enable_car_audio_focus_proxy);
 
     void set_virtual_tuner_server_port(int port);
 

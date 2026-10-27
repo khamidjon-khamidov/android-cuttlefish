@@ -505,6 +505,9 @@ Result<CuttlefishConfig> InitializeCuttlefishConfiguration(
   std::vector<bool> enable_vhal_proxy_server_vec =
       CF_EXPECT(GET_FLAG_BOOL_VALUE(enable_vhal_proxy_server));
 
+  std::vector<bool> enable_car_audio_focus_proxy_vec =
+      CF_EXPECT(GET_FLAG_BOOL_VALUE(enable_car_audio_focus_proxy));
+
   std::vector<std::string> gnss_file_paths =
       CF_EXPECT(GET_FLAG_STR_VALUE(gnss_file_path));
   std::vector<std::string> fixed_location_file_paths =
@@ -1139,6 +1142,8 @@ Result<CuttlefishConfig> InitializeCuttlefishConfiguration(
         enable_vhal_proxy_server_vec[instance_index]);
     instance.set_vhal_proxy_server_port(
         cuttlefish::vhal_proxy_server::kDefaultEthPort + num - 1);
+    instance.set_enable_car_audio_focus_proxy(
+        enable_car_audio_focus_proxy_vec[instance_index]);
     instance.set_virtual_tuner_server_port(7000 + num - 1);
 
     uint8_t ethernet_mac[6] = {};
