@@ -149,6 +149,10 @@ DEFINE_vec(enable_vhal_proxy_server,
            fmt::format("{}", CF_DEFAULTS_ENABLE_VHAL_PROXY_SERVER),
            "Enable the vhal proxy service on the host.");
 
+DEFINE_vec(enable_car_audiocontrol_proxy,
+           fmt::format("{}", CF_DEFAULTS_ENABLE_CAR_AUDIOCONTROL_PROXY),
+           "Enable the car audio control proxy service on the host.");
+
 /**
  * crosvm sandbox feature requires /var/empty and seccomp directory
  *
