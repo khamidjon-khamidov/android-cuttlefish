@@ -74,6 +74,7 @@ DECLARE_string(netsim_args);
 DECLARE_bool(enable_automotive_proxy);
 
 DECLARE_vec(enable_vhal_proxy_server);
+DECLARE_vec(enable_car_audio_focus_proxy);
 DECLARE_int32(vhal_proxy_server_instance_num);
 
 /**

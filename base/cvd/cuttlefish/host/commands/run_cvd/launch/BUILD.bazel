@@ -556,6 +556,19 @@ cf_cc_library(
 )
 
 cf_cc_library(
+    name = "car_audio_focus_proxy",
+    srcs = ["car_audio_focus_proxy.cpp"],
+    hdrs = ["car_audio_focus_proxy.h"],
+    deps = [
+        "//cuttlefish/host/commands/run_cvd/launch:grpc_socket_creator",
+        "//cuttlefish/host/libs/config:cuttlefish_config",
+        "//cuttlefish/host/libs/config:known_paths",
+        "//cuttlefish/host/libs/feature",
+        "//cuttlefish/process:command",
+    ],
+)
+
+cf_cc_library(
     name = "vhost_device_vsock",
     srcs = ["vhost_device_vsock.cpp"],
     hdrs = ["vhost_device_vsock.h"],

@@ -196,6 +196,9 @@
 // Vhal Proxy Server default parameter
 #define CF_DEFAULTS_ENABLE_VHAL_PROXY_SERVER false
 
+// Car Audio Focus Proxy default parameter
+#define CF_DEFAULTS_ENABLE_CAR_AUDIO_FOCUS_PROXY false
+
 // Bluetooth default parameters
 #define CF_DEFAULTS_ENABLE_HOST_BLUETOOTH true
 #define CF_DEFAULTS_ROOTCANAL_INSTANCE_NUM 0
