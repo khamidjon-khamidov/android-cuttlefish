@@ -2026,6 +2026,16 @@ int CuttlefishConfig::InstanceSpecific::vhal_proxy_server_port() const {
   return (*Dictionary())[kVhalProxyServerPort].asInt();
 }
 
+static constexpr char kEnableCarAudioControlProxy[] =
+    "enable_car_audiocontrol_proxy";
+void CuttlefishConfig::MutableInstanceSpecific::set_enable_car_audiocontrol_proxy(
+    bool enable_car_audiocontrol_proxy) {
+  (*Dictionary())[kEnableCarAudioControlProxy] = enable_car_audiocontrol_proxy;
+}
+bool CuttlefishConfig::InstanceSpecific::enable_car_audiocontrol_proxy() const {
+  return (*Dictionary())[kEnableCarAudioControlProxy].asBool();
+}
+
 static constexpr char kVirtualTunerServerPort[] = "virtual_tuner_server_port";
 void CuttlefishConfig::MutableInstanceSpecific::set_virtual_tuner_server_port(
     int port) {
