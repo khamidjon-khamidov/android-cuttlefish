@@ -91,6 +91,38 @@ Result<void> WebRtcController::SendScreenshotDisplayCommand(
   return {};
 }
 
+Result<void> WebRtcController::SendRequestCarAudioFocusCommand(
+    int zone_id, int usage, int content_type, const std::string& tags,
+    int focus_gain) {
+  CF_EXPECT(command_channel_.has_value(), "Not initialized?");
+  WebrtcCommandRequest request;
+  auto* focus_request = request.mutable_request_car_audio_focus_request();
+  focus_request->set_zone_id(zone_id);
+  focus_request->set_usage(usage);
+  focus_request->set_content_type(content_type);
+  focus_request->set_tags(tags);
+  focus_request->set_focus_gain(focus_gain);
+  WebrtcCommandResponse response =
+      CF_EXPECT(command_channel_->SendCommand(request));
+  CF_EXPECT(IsSuccess(response), "Failed to request car audio focus.");
+  return {};
+}
+
+Result<void> WebRtcController::SendAbandonCarAudioFocusCommand(
+    int zone_id, int usage, int content_type, const std::string& tags) {
+  CF_EXPECT(command_channel_.has_value(), "Not initialized?");
+  WebrtcCommandRequest request;
+  auto* focus_request = request.mutable_abandon_car_audio_focus_request();
+  focus_request->set_zone_id(zone_id);
+  focus_request->set_usage(usage);
+  focus_request->set_content_type(content_type);
+  focus_request->set_tags(tags);
+  WebrtcCommandResponse response =
+      CF_EXPECT(command_channel_->SendCommand(request));
+  CF_EXPECT(IsSuccess(response), "Failed to abandon car audio focus.");
+  return {};
+}
+
 fruit::Component<WebRtcController> WebRtcControllerComponent() {
   return fruit::createComponent()
       .addMultibinding<SetupFeature, WebRtcController>();

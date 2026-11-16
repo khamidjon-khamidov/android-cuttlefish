@@ -81,6 +81,10 @@ class ServerLoopImpl : public ServerLoop,
   Result<void> HandleStopScreenRecording();
   Result<void> HandleScreenshotDisplay(
       const run_cvd::ScreenshotDisplay& request);
+  Result<void> HandleRequestCarAudioFocus(
+      const run_cvd::RequestCarAudioFocus& request);
+  Result<void> HandleAbandonCarAudioFocus(
+      const run_cvd::AbandonCarAudioFocus& request);
 
   void HandleActionWithNoData(LauncherAction action, const SharedFD& client,
                               ProcessMonitor& process_monitor);

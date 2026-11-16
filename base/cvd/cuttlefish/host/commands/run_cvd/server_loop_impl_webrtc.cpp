@@ -48,5 +48,25 @@ Result<void> ServerLoopImpl::HandleScreenshotDisplay(
   return {};
 }
 
+Result<void> ServerLoopImpl::HandleRequestCarAudioFocus(
+    const cuttlefish::run_cvd::RequestCarAudioFocus& request) {
+  LOG(INFO) << "Sending the request to request car audio focus to webrtc.";
+  CF_EXPECT(webrtc_controller_.SendRequestCarAudioFocusCommand(
+                request.zone_id(), request.usage(), request.content_type(),
+                request.tags(), request.focus_gain()),
+            "Failed to send request car audio focus command to webrtc.");
+  return {};
+}
+
+Result<void> ServerLoopImpl::HandleAbandonCarAudioFocus(
+    const cuttlefish::run_cvd::AbandonCarAudioFocus& request) {
+  LOG(INFO) << "Sending the request to abandon car audio focus to webrtc.";
+  CF_EXPECT(webrtc_controller_.SendAbandonCarAudioFocusCommand(
+                request.zone_id(), request.usage(), request.content_type(),
+                request.tags()),
+            "Failed to send abandon car audio focus command to webrtc.");
+  return {};
+}
+
 }  // namespace run_cvd_impl
 }  // namespace cuttlefish
